@@ -1,0 +1,109 @@
+version: '3.6'
+services:
+  ui:
+    container_name: silui
+    image: gcr.io/coinos-326717/github.com/ipdp-io/joy-ui:master
+    restart: on-failure
+    ports:
+      - '3000:3000'
+  silapp:
+    depends_on:
+      - hbp
+    container_name: silapp
+    image: gcr.io/coinos-326717/github.com/ipdp-io/joy-server:master
+    restart: always
+    environment:
+      WEBHOOK_URL: '${WEBHOOK_URL}'
+      WEBHOOK_SECRET: '${WEBHOOK_SECRET}'
+      HASURA_SECRET: '${HASURA_GRAPHQL_ADMIN_SECRET}'
+      COINOS_URL: '${COINOS_URL}'
+      COINOS_TOKEN: '${COINOS_TOKEN}'
+      HASURA_JWT: '${HASURA_GRAPHQL_JWT_SECRET}'
+      LIQUID_ELECTRS_URL: '${LIQUID_ELECTRS_URL}'
+      LITECOIN_BLOCK: '${LITECOIN_BLOCK}'
+      LITECOIN_TX: '${LITECOIN_TX}'
+      NETWORK: '${NETWORK}'
+      SMTP_HOST: '${SMTP_HOST}'
+      SMTP_PORT: '${SMTP_PORT}'
+      SMTP_USER: '${SMTP_USER}'
+      SMTP_PASS: '${SMTP_PASS}'
+      SMTP_SENDER: '${SMTP_SENDER}'
+      SMTP_SECURE: "true"
+    volumes:
+      - ./:/app
+    # network_mode: host
+    ports:
+      - 8091:8091
+      - 9090:9090
+  hasura:
+    container_name: silhasura
+    image: hasura/graphql-engine:v2.0.4.cli-migrations-v3
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+    restart: always
+    volumes:
+      - ./migrations:/hasura-migrations
+      - ./metadata:/hasura-metadata
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:pgpassword@postgres:5432/postgres
+      HASURA_GRAPHQL_ADMIN_SECRET: '${HASURA_GRAPHQL_ADMIN_SECRET}'
+      HASURA_GRAPHQL_JWT_SECRET: '${HASURA_GRAPHQL_JWT_SECRET}'
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "anonymous"
+  hbp:
+    container_name: silhbp
+    image: nhost/hasura-backend-plus:latest
+    depends_on:
+      - 'hasura'
+    ports:
+      - '3400:3000'
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      HASURA_ENDPOINT: '${HASURA_ENDPOINT}'
+      HASURA_GRAPHQL_ADMIN_SECRET: '${HASURA_GRAPHQL_ADMIN_SECRET}'
+      JWT_ALGORITHM: '${JWT_ALGORITHM}'
+      JWT_KEY: '${JWT_KEY}'
+      AUTO_MIGRATE: "true"
+      STORAGE_ENABLED: "false"
+      SERVER_URL: '${SERVER_URL}'
+      DATABASE_URL: postgres://postgres:pgpassword@postgres:5432/postgres
+      REDIRECT_URL_ERROR: '${SERVER_URL}'
+      REDIRECT_URL_SUCCESS: '${SERVER_URL}'
+      AUTO_ACTIVATE_NEW_USERS: "false"
+      EMAILS_ENABLED: "true"
+      VERIFY_EMAILS: "true"
+      LOST_PASSWORD_ENABLED: "true"
+      SMTP_HOST: '${SMTP_HOST}'
+      SMTP_PORT: '${SMTP_PORT}'
+      SMTP_USER: '${SMTP_USER}'
+      SMTP_PASS: '${SMTP_PASS}'
+      SMTP_SENDER: '${SMTP_SENDER}'
+      SMTP_SECURE: "true"
+    volumes:
+      - ./custom:/app/custom
+  postgres:
+    container_name: silpg
+    image: "nhost/postgres:12-v0.0.6"
+    restart: always
+    volumes:
+      - "./db:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_PASSWORD: pgpassword
+      POSTGRES_DB: postgres
+  # litecoin:
+  #   image: asoltys/litecoin:latest
+  #   container_name: litecoin
+  #   volumes:
+  #     - ./litecoin:/config
+  #   restart: unless-stopped
+  #   ports:
+  #     - '19443:19443'
+  #     - '19506:18506'
+  #     - '19507:18507'
+networks:
+  default:
+    external:
+      name: net
