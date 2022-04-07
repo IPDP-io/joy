@@ -2,7 +2,7 @@
 # InterPlanetary Distribution Portal
 Start an instance of the [CoinOS server](https://github.com/coinos/coinos-server)
 
-    Create a new user on CoinOS app named 'coinos'
+    Create a new user on CoinOS(https://coinos.io) app.
     Once user is created, click on your avatar on the top right and click on settings
     In settings, click on Auth Keys and note your JWT Token
 
